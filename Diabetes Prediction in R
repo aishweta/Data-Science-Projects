@@ -1,0 +1,460 @@
+Pima Indian Diabetes Prediction in R
+
+This dataset is originally from the National Institute of Diabetes and Digestive and Kidney Diseases. 
+The objective is to predict based on diagnostic measurements whether a patient has diabetes.
+
+Dataset information:
+Several constraints were placed on the selection of these instances from a larger database. 
+In particular, all patients here are females at least 21 years old of Pima Indian heritage.
+
+Dimension of data : 768*9
+Name of the variables: Age, DiabetesPedigreeFunction, Insulin, Pregnancies, BMI, BloodPressure, Glucose, SkinThickness.
+Here Diabetes is our response variable, which is coded as 1(i.e. positive test for diabetes) and 0(i.e. negative test for diabetes).
+
+Machine learning Models:
+Our response variable here is binary i.e Whether patient has diabetes or not. 
+As mentioned earlier each patient has got data set. This is a classification problem.
+
+	
+Results: R-Studio
+
+
+#1. Import the data
+
+> pima <- read.csv("D:/shweta/project2_pima/pima.csv", header=T)
+
+#2. Structure of the data:
+
+> str(pima)
+'data.frame':   768 obs. of  9 variables:
+ $ Pregnancies             : int  6 1 8 1 0 5 3 10 2 8 ...
+ $ Glucose                 : int  148 85 183 89 137 116 78 115 197 125 ...
+ $ BloodPressure           : int  72 66 64 66 40 74 50 0 70 96 ...
+ $ SkinThickness           : int  35 29 0 23 35 0 32 0 45 0 ...
+ $ Insulin                 : int  0 0 0 94 168 0 88 0 543 0 ...
+ $ BMI                     : num  33.6 26.6 23.3 28.1 43.1 25.6 31 35.3 30.5 0 ...
+ $ DiabetesPedigreeFunction: num  0.627 0.351 0.672 0.167 2.288 ...
+ $ Age                     : int  50 31 32 21 33 30 26 29 53 54 ...
+ $ class                   : int  1 0 1 0 1 0 1 0 1 1 ...
+
+#3 dimensions of the data
+
+> dim(pima)
+[1] 768   9
+
+# First 6 rows of the data
+> head(pima)
+ Pregnancies Glucose BloodPressure SkinThickness Insulin  BMI
+1           6     148            72            35       0 33.6
+2           1      85            66            29       0 26.6
+3           8     183            64             0       0 23.3
+4           1      89            66            23      94 28.1
+5           0     137            40            35     168 43.1
+6           5     116            74             0       0 25.6
+  DiabetesPedigreeFunction Age class
+1                    0.627  50     1
+2                    0.351  31     0
+3                    0.672  32     1
+4                    0.167  21     0
+5                    2.288  33     1
+6                    0.201  30     0
+
+
+## visualize your data-  using Histrogram
+
+> par(mfrow=c(4,2))        # show histrogram on same graphics window
+> hist(pima$Pregnancies)
+> hist(pima$Glucose)
+> hist(pima$BloodPressure)
+> hist(pima$SkinThickness)
+> hist(pima$Insulin)
+> hist(pima$BMI)
+> hist(pima$DiabetesPedigreeFunction)
+> hist(pima$Age)
+
+> hist(pima$Diabetes)
+
+> #propotional table
+> prop.table(table(pima$Diabetes))
+
+        0         1 
+0.6510417    0.3489583
+
+By using above proportional table we can say that 65% instances have no diabetes.
+
+> ## model fitting on whole data
+
+> m1=glm(Diabetes~.,family=binomial,data=pima)
+> summary(m1)
+
+Call:
+glm(formula = Diabetes ~ ., family = binomial, data = pima)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.5566  -0.7274  -0.4159   0.7267   2.9297 
+
+
+Coefficients:
+                   Estimate 	Std. Error  z value 	Pr(>|z|)    
+(Intercept)        -8.4046964  0.7166359 -11.728  < 2e-16 ***
+Pregnancies        0.1231823  0.0320776   3.840 	0.000123 ***
+Glucose            0.0351637  0.0037087   9.481 	< 2e-16 ***
+BloodPressure     -0.0132955  0.0052336  -2.540	  0.011072 *  
+SkinThickness      0.0006190  0.0068994   0.090 	0.928515    
+Insulin           -0.0011917  0.0009012  -1.322 	0.186065    
+BMI                0.0897010  0.0150876   5.945 	2.76e-09 ***
+Dpf                0.9451797  0.2991475   3.160 	0.001580 ** 
+Age                0.0148690  0.0093348   1.593 	0.111192    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+Null deviance: 993.48  on 767  degrees of freedom
+Residual deviance: 723.45  on 759  degrees of freedom
+AIC: 741.45
+
+Number of Fisher Scoring iterations: 5
+
+
+Here some of the variables are non significant. If value is greater than 0.05 , we can say that corresponding variables are non-significant.
+
+Data Preparation procedure:
+1) Missing value treatment:
+The data set contains missing values and outliers. We have to pre-process this data set by filling missing values. Replaced 0 values by mean, but no performance improvement was observed while evaluating models.
+Dropped rows with 0 values, performance seems to be improved. But dataset reduces to half.
+Here we use K-Nearest Neighbours approach to impute missing values.
+What kNN imputation does in simpler terms is as follows: For every observation to be imputed, it identifies ‘k’ closest observations based on the euclidean distance and computes the weighted average (weighted based on distance) of these ‘k’ obs. The advantage is that you could impute all the missing values in all variables with one call to the function.
+
+> #Treat missing value
+> data <- pima[,setdiff(names(pima), c('Diabetes', 'Pregnancies'))]
+> features_miss_num <- apply(data, 2, function(x) sum(x<=0))
+> features_miss_num
+                 Glucose            BloodPressure            SkinThickness 
+                       5                       35                            227 
+                 Insulin                      BMI                     DiabetesPedigreeFunction 
+                     374                       11                        0 
+                     Age 
+                       0
+
+Here Variable Insulin contain 374 i.e. 48.69% missing value.
+
+> #Method: KNN imputation
+> library(DMwR)
+> data[data<=0] <- NA
+> pima[, names(data)] <- data
+> pima_original=pima
+> pima[,-9] <- knnImputation(pima[,-9], k=5)
+
+If we delete missing values we get better performance but we lost half of the data. 
+So we use KNN Imputation method to fill up missing values.
+
+2) Outlier detection:
+> #finding outliers in data
+> boxplot(pima,col = "RED")
+
+
+By using box plot we can visualize outliers. Here variable Insulin has extreme values(outliers).
+> a=mean(pima$Insulin)
+> b<-var(pima$Insulin)
+> out<-which(pima$Insulin>=a+3*sqrt(b))
+> pima_1<-pima[out,]
+
+> table(pima_1$Diabetes)
+
+ 0  1 
+ 6 13 
+
+> #outlier removed data
+> pima2<-pima[-out,]
+
+> dim(pima2)
+[1] 749   9
+> #but by removing outliers dose not improve the model performance
+
+By removing these extreme values we get data of dimensions 750*9.
+So here we are not taken outliers removed data.
+
+3. Correlation plot:
+> #To check correlation among the variables
+> library(corrplot)
+> m<-cor(pima[,-9])
+> corrplot(m,method="number",type<-"lower")
+
+
+Here Insulin and SkinThickness have more correlation.
+
+4. Checking Multicollinearity:
+
+> #Checking if there is multicollinearity present in the data
+> library(car)
+> fit<-glm(Diabetes~.,family<-binomial(link<-"logit"),data<-pima)
+> Vif=vif(fit)
+> Vif
+
+
+             Pregnancies                  Glucose            BloodPressure 
+                1.429565                 1.422522                 1.236976 
+           SkinThickness                  Insulin                      BMI 
+                1.684768                 1.471900                 1.887454 
+DiabetesPedigreeFunction           Age 
+                1.017025                 1.609818
+
+Here all VIF values are less than 2. i.e. there is no multicollinearity present in the data.
+
+5. Data Partition:
+
+Before building model we used 70 % of total data as training data and rest as test data. 
+With training data we will be training the model and then with test data will test the model.
+
+> #split the data set into training and test (evaluation) set
+> n=nrow(pima)
+> s=sample(n,n*0.7, replace<-F,set.seed(78))
+> X_train <-pima[s,]
+> Y_train <-X_train[,-9]
+> X_test <-pima[-s,]
+> Y_test <-X_test[,-9]
+
+6. Model building on training data
+
+Here we build the Logistic Regression model on train data.
+
+> #  model fitted on the training data set
+> model<-glm(Diabetes~., family=binomial(link="logit"),data=X_train)
+> summary(model)
+
+
+
+Call:
+glm(formula = Diabetes ~ ., family = binomial(link = "logit"), 
+    data = X_train)
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-2.4037  -0.7209  -0.4434   0.7587   2.3511  
+
+Coefficients:
+                 Estimate 	Std. Error z value  Pr(>|z|)    
+(Intercept)      -8.906325   0.970282  -9.179   < 2e-16 ***
+Pregnancies       0.102407   0.036861   2.778   0.00547 ** 
+Glucose           0.036689   0.004762   7.705  1.31e-14 ***
+BloodPressure    -0.006255   0.010143  -0.617  0.53741    
+SkinThickness    -0.007991   0.015271  -0.523  0.60078    
+Insulin          -0.001705   0.001379  -1.236  0.21644    
+BMI              0.101113   0.022713   4.452   8.51e-06 ***
+Dpf              0.817792   0.343383   2.382   0.01724 *  
+Age              0.016148   0.010989   1.470   0.14168    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+Null deviance: 702.55  on 536  degrees of freedom
+Residual deviance: 516.90  on 528  degrees of freedom
+AIC: 534.9
+
+Number of Fisher Scoring iterations: 4
+
+5. Subset selection
+> library(MASS)
+> model.step = stepAIC(model)
+
+> # Removing some variables does not improve the model
+> #so we will keep all the variables
+
+
+last step of AIC subset selection:
+Step:  AIC=530.2
+Diabetes ~ Pregnancies + Glucose + BMI + DiabetesPedigreeFunction
+
+                           Df  Deviance       AIC
+<none>                         520.20      530.20
+- Dpf                      1   525.72      533.72
+- Pregnancies              1   535.87      543.87
+- BMI                      1   547.34      555.34
+- Glucose                 1     612.10     620.10
+
+
+Here there is no model performance is found by using AIC criteria. Model with few variables dosen't make any scence.
+So let us work with all the variables and make prediction on test data.
+> ## create predictions for the test (evaluation) data set
+> pred<-predict(model, newdata=X_test, type="response")
+> plot(X_test$Diabetes~pred)
+
+
+5. Confusion matrix
+> ## coding as 1 if probability 0.56 or larger
+> pred1<-ifelse(pred>0.56, 1,0)    
+> t=table(X_test$Diabetes,pred1)
+> t
+   pred1
+        0   1
+  0  149   8
+  1  37   37
+Here threshold values is 0.56 and above table is called as confusion matrix.
+
+6. Accuracy
+
+> acc<-sum(diag(t))/sum(t)
+> acc
+[1] 0.8051948
+
+Accuracy is 80.52%.
+
+7. ROC curve
+> #ROC curve
+> library(ROCR)
+> pred1=prediction(predict(model,X_test),X_test$Diabetes)
+> perf1 <- performance(pred1,"tpr","fpr")
+> plot(perf1,main="ROC")
+> abline(0,1)
+
+
+8. Build model on same data to see results are stable or not.
+> #train and test data set with pred prob variables
+> X_train$pred = predict(model,type="response")
+> X_test$pred=predict(model,type="response",newdata=X_test)
+
+
+> train_pred <- prediction(X_train$pred, X_train$Diabetes)
+> train_perf <- performance(train_pred,  measure = "tpr", x.measure = "fpr")
+> plot(train_perf,main="Training data")
+> abline(0,1)
+
+
+> val_pred <- prediction(X_test$pred, X_test$Diabetes)
+> val_perf <- performance(val_pred, measure = "tpr", x.measure = "fpr")
+> plot(val_perf,main="Testing data")
+> abline(0,1)
+
+
+
+Here lift is good for both train and test data, We can see that our results are stable for train and test data. 
+
+Other classifiers:
+
+#Knn classifier
+library(class)
+pred<-knn(train_data1,test_data1,train_data$class,l=0)
+t<-table(test_data$class,pred)
+acc<-sum(diag(t))/sum(t)
+acc
+pred1=prediction(predict(model,test_data1),test_data$class)
+perf1 <- performance(pred1,"tpr","fpr")
+plot(perf1,main="ROC")
+
+
+
+#SVM Classifier
+library(e1071)
+model<-svm(class~., data<-train_data,kernel="linear",cost=2)
+pred<-predict(model,test_data1)
+pred1<-ifelse(pred>0.56,1,0)
+t=table(test_data$class,pred1)
+acc<-sum(diag(t))/sum(t)
+acc
+pred1=prediction(predict(model,test_data1),test_data$class)
+perf1 <- performance(pred1,"tpr","fpr")
+plot(perf1,main="ROC")
+
+
+#Neural net
+library(nnet)
+model<-nnet(class~.,data<-train_data,size=40)
+pred<-predict(model,test_data1)
+pred1<-ifelse(pred>0.56,1,0)
+t=table(test_data$class,pred1)
+acc<-sum(diag(t))/sum(t)
+acc
+
+pred1=prediction(predict(model,test_data1),test_data$class)
+perf1 <- performance(pred1,"tpr","fpr")
+plot(perf1,main="ROC")
+
+
+Results:
+1) SVM:    Accuracy = 0.8266          
+
+2) ANN:   Accuracy = 0.7333
+
+3) KNN:  Accuracy = 0.7066 
+
+ 
+
+Bagging and Boosting Algorithms:
+
+
+> # Load libraries
+> library(mlbench)
+> library(caret)
+> library(caretEnsemble)
+> control <- trainControl(method="repeatedcv", number=10, repeats=3)
+> seed <- 7
+> metric <- "Accuracy"
+> # C5.0
+> set.seed(seed)
+
+> fit.c50 <- train(Diabetes~., data=pima, method="C5.0", metric=metric, trControl=control)
+> # Stochastic Gradient Boosting
+> set.seed(seed)
+
+> fit.gbm <- train(Diabetes~., data=pima, method="gbm", metric=metric, trControl=control, verbose=FALSE)
+> # summarize results
+> boosting_results <- resamples(list(c5.0=fit.c50, gbm=fit.gbm))
+> summary(boosting_results)
+
+Call:
+summary.resamples(object = boosting_results)
+
+Models: c5.0, gbm 
+Number of resamples: 30 
+
+Accuracy 
+          Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+c5.0 0.6493506 0.7175325 0.7500000 0.7586523 0.8019481 0.8441558    0
+gbm  0.6883117 0.7402597 0.7727273 0.7678287 0.8000256 0.8311688    0
+
+Kappa 
+          Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+c5.0 0.2614565 0.3836782 0.4416893 0.4602771 0.5526544 0.6577778    0
+gbm  0.2914110 0.3906648 0.4688274 0.4625427 0.5346588 0.6195363    0
+
+
+> dotplot(boosting_results)
+
+
+> # Example of Bagging algorithms
+> control <- trainControl(method="repeatedcv", number=10, repeats=3)
+> seed <- 7
+> metric <- "Accuracy"
+> # Bagged CART
+> set.seed(seed)
+> fit.treebag <- train(Diabetes~., data=pima, method="treebag", metric=metric, trControl=control)
+> # Random Forest
+> set.seed(seed)
+> fit.rf <- train(Diabetes~., data=pima, method="rf", metric=metric, trControl=control)
+> # summarize results
+> bagging_results <- resamples(list(treebag=fit.treebag, rf=fit.rf))
+> summary(bagging_results)
+
+Call:
+summary.resamples(object = bagging_results)
+
+Models: treebag, rf 
+Number of resamples: 30 
+
+Accuracy 
+             Min.              1st Qu.    Median      Mean          3rd Qu.      Max.         NA's
+treebag 0.6753247 0.7105263 0.7385509 0.7382718 0.7662338 0.8181818    0
+rf           0.6493506 0.7166353 0.7597403 0.7582479 0.8000256 0.8441558    0
+
+Kappa 
+                Min.        1st Qu.       Median      Mean         3rd Qu.      Max.          NA's
+treebag 0.2278379 0.3462357 0.3960868 0.4091034 0.4777694 0.5938206    0
+rf           0.1660650 0.3577682 0.4616769 0.4493445 0.5371438 0.6577778    0
+
+> dotplot(bagging_results)
+
+
+
